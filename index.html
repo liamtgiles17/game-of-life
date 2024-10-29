@@ -5,7 +5,10 @@
     </head>
     <style>
         body {
-            background: #0c0c0c
+            background: #0c0c0c;
+        }
+        #settings {
+            color: #e9e9e9;
         }
         #game {
             background: #181818;
@@ -16,7 +19,125 @@
         }
     </style>
     <body>
-        <canvas id="game", width="800", height="600"></canvas>
-        <script src="./src/index.js"></script>
+        <script src="jquery.js"></script>
+        <div id="settings">
+            Resolution: <input type="range" id="resolution" name="resolution" min="1" max="5"></input>
+            <br/><br/>
+            Initial State: <input type="range" id="init" name="init" min="1" max="99"></input>
+            <br/><br/>
+            FPS: <input type="range" id="speed" name="speed" min="4" max="20"></input>
+            <br/><br/>
+            <button id="start">START</button>
+            <button id="stop">STOP</button>
+        </div>
+        <canvas id="game", width="1024", height="1024"></canvas>
+        <script>
+            $(document).ready(() => {
+                const canvas = document.getElementById("game");
+                const ctx = canvas.getContext("2d");
+                const width = 1024;
+                const height = 1024;
+                var startAllowed = true;
+                var shouldReset = false;
+
+                function init() {
+                    var state = {
+                        'generation': 0,
+                        'population': 0,
+                        'tileSize': 2**$("#resolution").val(),
+                        'initDeadChance': $("#init").val()/100,
+                        'cells': []
+                    };
+
+                    for (let i = 0; i < width/state['tileSize']; i++) {
+                        let row = [];
+                        for (let j = 0; j < height/state['tileSize']; j++) {
+                            if (Math.random() >= state['initDeadChance']) {
+                                row.push(1);
+                                state['population']++;
+                            }
+                            else row.push(0);
+                        }
+                        state['cells'].push(row);
+                    }
+                    return state;
+                }
+
+                function draw(state) {
+                    ctx.fillStyle = "rgb(242, 242, 242)";
+                    for (let i = 0; i < width/state['tileSize']; i++) {
+                        for (let j = 0; j < height/state['tileSize']; j++) {
+                            if (state['cells'][j][i] === 1) {
+                                ctx.fillRect(i*state['tileSize'], j*state['tileSize'], state['tileSize'], state['tileSize']);
+                            }
+                        }
+                    }
+                }
+
+                function update(state) {
+                    let newCells = [];
+                    for (let row = 0; row < height/state['tileSize']; row++) {
+                        let newRow = [];
+                        for (let col = 0; col < width/state['tileSize']; col++) {
+                            let rowMinusOne = row-1 < 0 ? (height/state['tileSize'])-1 : row-1;
+                            let rowPlusOne = row+1 >= (height/state['tileSize']) ? 0 : row+1;
+                            let colMinusOne = col-1 < 0 ? (width/state['tileSize'])-1 : col-1;
+                            let colPlusOne = col+1 >= (width/state['tileSize']) ? 0 : col+1;
+
+                            let aliveNeighbours = state['cells'][rowMinusOne][colMinusOne]+state['cells'][rowMinusOne][col]+state['cells'][rowMinusOne][colPlusOne]+state['cells'][row][colMinusOne]+state['cells'][row][colPlusOne]+state['cells'][rowPlusOne][colMinusOne]+state['cells'][rowPlusOne][col]+state['cells'][rowPlusOne][colPlusOne];
+
+                            let cell = state['cells'][row][col];
+
+                            let moveOn = false;
+                            if (cell === 0 && aliveNeighbours === 3) {
+                                cell = 1;
+                                state['population']++;
+                                moveOn = true;
+                            }
+                            if (!moveOn && cell === 1 && (aliveNeighbours < 2 || aliveNeighbours > 3)) {
+                                cell = 0;
+                                state['population']--;
+                            }
+                            newRow.push(cell);
+                        }
+                        newCells.push(newRow);
+                    }
+                    state['cells'] = newCells;
+                    state['generation']++;
+                }
+
+                function main(state) {
+                    startAllowed = false;
+                    setTimeout(() => {
+                        ctx.clearRect(0, 0, 1024, 1024);
+                        draw(state);
+                        ctx.font = "14px Serif";
+                        ctx.fillStyle = "rgb(24, 242, 242)";
+                        ctx.fillText(`Generation: ${state['generation']}`, 2, 10);
+                        ctx.fillText(`Population: ${state['population']}`, 2, 26);
+                        update(state);
+                        if (!shouldReset) window.requestAnimationFrame(() => {main(state)});
+                        else {
+                            ctx.clearRect(0, 0, 1024, 1024);
+                            shouldReset = false;
+                            startAllowed = true;
+                            return;
+                        }
+                    }, 1000/$("#speed").val());
+                }
+
+
+                $("#start").click(() => {
+                    if (startAllowed) {
+                        var state = init();
+                        main(state);
+                    }
+                });
+
+                $("#stop").click(() => {
+                    shouldReset = true;
+                });
+            });
+        </script>
     </body>
 </html>
