@@ -10,6 +10,9 @@
         #settings {
             color: #e9e9e9;
         }
+        #stats {
+            color: #e9e9e9;
+        }
         #game {
             background: #181818;
             position: absolute;
@@ -25,10 +28,14 @@
             <br/><br/>
             Initial State: <input type="range" id="init" name="init" min="1" max="99"></input>
             <br/><br/>
-            FPS: <input type="range" id="speed" name="speed" min="4" max="20"></input>
+            FPS: <input type="range" id="speed" name="speed" min="2" max="20"></input>
             <br/><br/>
             <button id="start">START</button>
             <button id="stop">STOP</button>
+        </div>
+        <div id="stats">
+            <p id="generation">Generation: 0</p>
+            <p id="population">Population: 0</p>
         </div>
         <canvas id="game", width="1024", height="1024"></canvas>
         <script>
@@ -111,16 +118,16 @@
                     setTimeout(() => {
                         ctx.clearRect(0, 0, 1024, 1024);
                         draw(state);
-                        ctx.font = "14px Serif";
-                        ctx.fillStyle = "rgb(24, 242, 242)";
-                        ctx.fillText(`Generation: ${state['generation']}`, 2, 10);
-                        ctx.fillText(`Population: ${state['population']}`, 2, 26);
+                        $("#generation").replaceWith(`<p id="generation">Generation: ${state['generation']}</p>`);
+                        $("#population").replaceWith(`<p id="population">Population: ${state['population']}</p>`);
                         update(state);
                         if (!shouldReset) window.requestAnimationFrame(() => {main(state)});
                         else {
                             ctx.clearRect(0, 0, 1024, 1024);
                             shouldReset = false;
                             startAllowed = true;
+                            $("#generation").replaceWith(`<p id="generation">Generation: 0</p>`);
+                            $("#population").replaceWith(`<p id="population">Population: 0</p>`);
                             return;
                         }
                     }, 1000/$("#speed").val());
@@ -135,7 +142,7 @@
                 });
 
                 $("#stop").click(() => {
-                    shouldReset = true;
+                    if (!startAllowed && !shouldReset) shouldReset = true;
                 });
             });
         </script>
